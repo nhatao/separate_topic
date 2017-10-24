@@ -1,40 +1,51 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/LaserScan.h>
 
-class separate_topic_node
+class SeparateTopicNode
 {
 private:
-	ros::NodeHandle nh;
-	ros::Subscriber sub_cloud;
-	std::map<std::string, ros::Publisher> pubs;
+  ros::NodeHandle nh_;
+  ros::NodeHandle pnh_;
+  ros::Subscriber sub_cloud_;
+  ros::Subscriber sub_scan_;
+  std::map<std::string, ros::Publisher> pubs_;
 
-	void cb_cloud(const sensor_msgs::PointCloud2::ConstPtr &msg)
-	{
-		if(pubs.find(msg->header.frame_id) == pubs.end())
-		{
-			pubs[msg->header.frame_id] = nh.advertise<sensor_msgs::PointCloud2>(
-					std::string("/cloud_") + msg->header.frame_id,
-					2, true);
-		}
-		pubs[msg->header.frame_id].publish(*msg);
-	}
+  void cbCloud(const sensor_msgs::PointCloud2::ConstPtr &msg)
+  {
+    std::string name = "cloud_" + msg->header.frame_id;
+    if (pubs_.find(name) == pubs_.end())
+    {
+      pubs_[name] = nh_.advertise<sensor_msgs::PointCloud2>(name, 2, true);
+    }
+    pubs_[name].publish(*msg);
+  }
+  void cbScan(const sensor_msgs::LaserScan::ConstPtr &msg)
+  {
+    std::string name = "scan_" + msg->header.frame_id;
+    if (pubs_.find(name) == pubs_.end())
+    {
+      pubs_[name] = nh_.advertise<sensor_msgs::LaserScan>(name, 2, true);
+    }
+    pubs_[name].publish(*msg);
+  }
 
 public:
-	separate_topic_node(int argc, char *argv[]):
-		nh("~")
-	{
-		sub_cloud = nh.subscribe("/cloud", 20, &separate_topic_node::cb_cloud, this);
-	}
+  SeparateTopicNode(int argc, char *argv[])
+    : nh_("")
+    , pnh_("~")
+  {
+    sub_cloud_ = nh_.subscribe("cloud", 20, &SeparateTopicNode::cbCloud, this);
+    sub_scan_ = nh_.subscribe("scan", 20, &SeparateTopicNode::cbScan, this);
+  }
 };
 
 int main(int argc, char *argv[])
 {
-	ros::init(argc, argv, "separate_topic");
+  ros::init(argc, argv, "separate_topic");
 
-	separate_topic_node sep(argc, argv);
-	ros::spin();
+  SeparateTopicNode sep(argc, argv);
+  ros::spin();
 
-	return 0;
+  return 0;
 }
-
-
